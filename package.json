@@ -9,6 +9,7 @@
     "start": "npm run build && node dist/start.js",
     "once": "npm run build && node dist/once.js",
     "dev": "tsx src/index.ts",
+    "openclaw-ai": "bash start-openclaw-ai.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

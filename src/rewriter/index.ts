@@ -31,6 +31,7 @@ export class ContentRewriter {
     } else if (config.provider === 'anthropic') {
       this.anthropic = new Anthropic({
         apiKey: config.apiKey,
+        baseURL: config.baseURL,
       });
     }
   }

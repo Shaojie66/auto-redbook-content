@@ -6,48 +6,52 @@ const execAsync = promisify(exec);
 
 export class XhsScraper {
   /**
-   * 使用 mcporter 调用 xiaohongshu MCP 搜索笔记
+   * 直接调用 list_feeds 获取首页笔记（不依赖搜索功能）
    */
   async searchNotes(config: ScraperConfig): Promise<XhsNote[]> {
     const notes: XhsNote[] = [];
 
-    for (const keyword of config.keywords) {
-      try {
-        console.log(`正在搜索关键词: ${keyword}`);
-        
-        // 调用 mcporter 执行 xiaohongshu MCP 的搜索工具
-        const command = `mcporter call xiaohongshu search_notes --keyword "${keyword}" --sort_type "${config.sortBy || 'hot'}" --page_size ${config.maxResults}`;
-        
-        const { stdout, stderr } = await execAsync(command);
-        
-        if (stderr) {
-          console.error(`搜索 ${keyword} 时出现警告:`, stderr);
-        }
-
-        // 解析 mcporter 返回的 JSON 结果
-        const result = JSON.parse(stdout);
-        
-        if (result.notes && Array.isArray(result.notes)) {
-          const parsedNotes = result.notes.map((note: any) => ({
-            id: note.note_id || note.id,
-            title: note.title || '',
-            content: note.desc || note.content || '',
-            author: note.user?.nickname || note.author || 'Unknown',
-            likes: note.liked_count || note.likes || 0,
-            comments: note.comment_count || note.comments || 0,
-            shares: note.share_count || note.shares || 0,
-            url: note.note_url || `https://www.xiaohongshu.com/explore/${note.note_id || note.id}`,
-            images: note.image_list || note.images || [],
-            tags: note.tag_list?.map((t: any) => t.name) || note.tags || [],
-            publishTime: note.time || note.publishTime,
-          }));
-
-          notes.push(...parsedNotes);
-          console.log(`关键词 ${keyword} 找到 ${parsedNotes.length} 条笔记`);
-        }
-      } catch (error) {
-        console.error(`搜索关键词 ${keyword} 失败:`, error);
+    try {
+      console.log(`正在获取小红书首页笔记...`);
+      
+      // 直接调用 list_feeds 获取首页内容
+      const command = `mcporter call xiaohongshu list_feeds`;
+      
+      const { stdout, stderr } = await execAsync(command);
+      
+      if (stderr && !stderr.includes('[mcporter]')) {
+        console.error(`获取笔记时出现警告:`, stderr);
       }
+
+      // 解析 mcporter 返回的 JSON 结果
+      const result = JSON.parse(stdout);
+      
+      if (result.feeds && Array.isArray(result.feeds)) {
+        const parsedNotes = result.feeds
+          .filter((feed: any) => feed.noteCard)
+          .slice(0, config.maxResults)
+          .map((feed: any) => {
+            const note = feed.noteCard;
+            return {
+              id: feed.id,
+              title: note.displayTitle || '',
+              content: note.desc || '',
+              author: note.user?.nickname || 'Unknown',
+              likes: parseInt(note.interactInfo?.likedCount?.replace(/[^\d]/g, '') || '0'),
+              comments: parseInt(note.interactInfo?.commentCount?.replace(/[^\d]/g, '') || '0'),
+              shares: parseInt(note.interactInfo?.sharedCount?.replace(/[^\d]/g, '') || '0'),
+              url: `https://www.xiaohongshu.com/explore/${feed.id}`,
+              images: note.cover?.infoList?.map((img: any) => img.url) || [],
+              tags: note.tagList?.map((t: any) => t.name) || [],
+              publishTime: '',
+            };
+          });
+
+        notes.push(...parsedNotes);
+        console.log(`获取到 ${parsedNotes.length} 条笔记`);
+      }
+    } catch (error) {
+      console.error(`获取笔记失败:`, error);
     }
 
     return notes.slice(0, config.maxResults);

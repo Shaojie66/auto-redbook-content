@@ -13,7 +13,7 @@
 
 - Node.js + TypeScript
 - xiaohongshu MCP（小红书数据抓取）
-- OpenAI/Anthropic API（AI 洗稿）
+- **OpenClaw AI（本地 AI 能力，无需外部 API Key）**
 - Feishu API（飞书表格写入）
 
 ## 安装
@@ -42,12 +42,11 @@ XHS_KEYWORDS=AI,人工智能,机器学习
 XHS_MAX_RESULTS=10
 XHS_SORT_BY=hot
 
-# AI 配置
-AI_PROVIDER=openai              # 支持 openai 或 anthropic
-AI_API_KEY=your_api_key_here    # 必填：你的 API Key
-AI_MODEL=gpt-4                  # OpenAI: gpt-4, gpt-3.5-turbo 等
-                                # Anthropic: claude-3-opus-20240229, claude-3-sonnet-20240229 等
-AI_BASE_URL=                    # 可选：自定义 API 端点（如使用代理或第三方服务）
+# AI 配置 - 使用 OpenClaw 本地 AI
+AI_PROVIDER=anthropic
+AI_API_KEY=dummy-key-not-used
+AI_MODEL=claude-opus-4-6
+AI_BASE_URL=http://127.0.0.1:18790
 
 # 飞书配置
 FEISHU_APP_ID=your_app_id
@@ -62,29 +61,53 @@ SCHEDULE_CRON=0 */6 * * *
 
 ### AI 配置说明
 
-**OpenAI 配置示例：**
-```env
-AI_PROVIDER=openai
-AI_API_KEY=sk-proj-xxxxxxxxxxxxx
-AI_MODEL=gpt-4
+**本项目已改造为使用 OpenClaw 的本地 AI 能力，无需外部 API Key。**
+
+OpenClaw AI 通过本地代理服务提供 AI 能力：
+- 代理服务监听 `http://127.0.0.1:18790`
+- 兼容 Anthropic API 格式
+- 请求通过文件队列传递给 OpenClaw agent 处理
+- 无需配置真实的 API Key
+
+**启动 OpenClaw AI 服务：**
+
+```bash
+# 在一个终端窗口中启动 AI 服务
+npm run openclaw-ai
 ```
 
-**Anthropic 配置示例：**
-```env
-AI_PROVIDER=anthropic
-AI_API_KEY=sk-ant-xxxxxxxxxxxxx
-AI_MODEL=claude-3-opus-20240229
-```
+这会启动两个组件：
+1. **代理服务器** - 监听 HTTP 请求（端口 18790）
+2. **请求监控器** - 处理 AI 请求队列
 
-**使用第三方 API 代理：**
-```env
-AI_PROVIDER=openai
-AI_API_KEY=your_key
-AI_MODEL=gpt-4
-AI_BASE_URL=https://your-proxy.com/v1
-```
+**配置说明：**
+- `AI_PROVIDER=anthropic` - 使用 Anthropic 兼容格式
+- `AI_API_KEY=dummy-key-not-used` - 占位符，不会被使用
+- `AI_MODEL=claude-opus-4-6` - 模型标识
+- `AI_BASE_URL=http://127.0.0.1:18790` - 本地代理地址
 
 ## 使用
+
+### 1. 启动 OpenClaw AI 服务
+
+```bash
+# 在第一个终端窗口
+npm run openclaw-ai
+```
+
+保持这个窗口运行，它会处理所有 AI 请求。
+
+### 2. 执行内容处理流程
+
+在另一个终端窗口：
+
+```bash
+# 手动执行一次
+npm run once
+
+# 或启动定时任务
+npm run start
+```
 
 ### 手动执行一次
 
@@ -128,13 +151,6 @@ SCHEDULE_CRON=0 */6 * * *
 - 写入状态
 - 成功/失败统计
 
-### 开发模式
-
-```bash
-# 开发模式运行（使用旧的测试脚本）
-npm run dev
-```
-
 ### 飞书配置说明
 
 1. **创建飞书应用**
@@ -170,22 +186,64 @@ npm run dev
      - `FEISHU_APP_TOKEN=ABC123`
      - `FEISHU_TABLE_ID=tblXYZ789`
 
+## 架构说明
+
+### OpenClaw AI 集成
+
+本项目已从外部 AI API（OpenAI/Anthropic）迁移到 OpenClaw 本地 AI 能力：
+
+**组件架构：**
+
+```
+auto-redbook-content (主程序)
+    ↓ HTTP POST /v1/messages
+openclaw-ai-proxy-v2.js (代理服务器)
+    ↓ 写入请求文件
+/tmp/openclaw-ai-requests/*.request.json
+    ↓ 监控并处理
+openclaw-ai-monitor.js (请求监控器)
+    ↓ 调用 AI
+OpenClaw Agent (当前 agent)
+    ↓ 返回响应
+/tmp/openclaw-ai-requests/*.response.json
+    ↓ 读取响应
+openclaw-ai-proxy-v2.js
+    ↓ HTTP 200 + JSON
+auto-redbook-content
+```
+
+**文件说明：**
+
+- `openclaw-ai-proxy-v2.js` - HTTP 代理服务器，兼容 Anthropic API 格式
+- `openclaw-ai-monitor.js` - 请求监控器，处理 AI 请求队列
+- `start-openclaw-ai.sh` - 启动脚本，同时启动代理和监控器
+- `src/rewriter/index.ts` - 保持原有接口，通过 baseURL 指向本地代理
+
+**优势：**
+
+- ✅ 无需外部 API Key
+- ✅ 数据不离开本地环境
+- ✅ 可以使用 OpenClaw 配置的任何模型
+- ✅ 保持原有代码接口不变
+
 ## 开发进度
 
 - [x] 阶段 1: 项目初始化 + 小红书抓取功能
 - [x] 阶段 2: AI 洗稿功能
 - [x] 阶段 3: 飞书表格写入功能
 - [x] 阶段 4: 定时调度 + 完整自动化
+- [x] 阶段 5: 迁移到 OpenClaw AI（移除外部 API 依赖）
 
 ## 功能特性
 
 - ✅ 小红书热点内容抓取
-- ✅ AI 智能洗稿（支持 OpenAI 和 Anthropic）
+- ✅ AI 智能洗稿（通过 OpenClaw 本地 AI）
 - ✅ 飞书多维表格自动写入
 - ✅ 定时调度执行
 - ✅ 失败重试机制（最多 3 次）
 - ✅ 详细日志记录
 - ✅ 灵活配置（关键词、数量、调度时间）
+- ✅ 无需外部 API Key
 
 ## 项目结构
 
@@ -198,20 +256,16 @@ auto-redbook-content/
 │   │   ├── index.ts     # ContentRewriter 类
 │   │   └── prompts.ts   # 洗稿提示词
 │   ├── feishu/          # 飞书集成模块
-│   │   ├── client.ts    # 飞书 API 客户端
-│   │   ├── writer.ts    # 飞书写入器
-│   │   ├── record-builder.ts  # 记录构建器
-│   │   └── index.ts     # 模块导出
 │   ├── scheduler/       # 定时调度模块
-│   │   └── index.ts     # Scheduler 类
 │   ├── pipeline/        # 执行流程模块
-│   │   └── index.ts     # runPipeline 函数
 │   ├── utils/           # 工具函数
-│   │   └── logger.ts    # 日志工具
 │   ├── types/           # TypeScript 类型定义
 │   ├── start.ts         # 定时任务入口
 │   ├── once.ts          # 单次执行入口
 │   └── index.ts         # 旧版测试入口
+├── openclaw-ai-proxy-v2.js    # OpenClaw AI 代理服务器
+├── openclaw-ai-monitor.js     # OpenClaw AI 请求监控器
+├── start-openclaw-ai.sh       # OpenClaw AI 启动脚本
 ├── .env.example         # 环境变量示例
 ├── package.json
 ├── tsconfig.json
