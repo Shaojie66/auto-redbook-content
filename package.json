@@ -1,0 +1,25 @@
+{
+  "name": "auto-redbook-content",
+  "version": "1.0.0",
+  "description": "从小红书抓取热点笔记 → AI 洗稿 → 存入飞书多维表格",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["xiaohongshu", "redbook", "feishu", "ai", "content"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
