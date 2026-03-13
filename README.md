@@ -97,11 +97,46 @@ npm run build
 npm start
 ```
 
+### 飞书配置说明
+
+1. **创建飞书应用**
+   - 访问 [飞书开放平台](https://open.feishu.cn/)
+   - 创建企业自建应用
+   - 获取 `App ID` 和 `App Secret`
+
+2. **配置权限**
+   - 在应用管理后台，添加以下权限：
+     - `bitable:app` - 查看、编辑和管理多维表格
+     - `bitable:app:readonly` - 查看多维表格
+
+3. **创建多维表格**
+   - 在飞书中创建一个新的多维表格
+   - 添加以下字段：
+     - `原标题` - 文本
+     - `原文链接` - URL
+     - `作者` - 文本
+     - `点赞数` - 数字
+     - `评论数` - 数字
+     - `收藏数` - 数字
+     - `洗稿后标题` - 文本
+     - `洗稿后正文` - 多行文本
+     - `提取标签` - 文本
+     - `抓取时间` - 日期时间
+     - `状态` - 单选（待审核/已发布/已归档）
+
+4. **获取表格信息**
+   - 打开多维表格，从 URL 中提取：
+     - `FEISHU_APP_TOKEN`: URL 中 `/base/` 后面的部分
+     - `FEISHU_TABLE_ID`: URL 参数 `?table=` 后面的部分
+   - 示例 URL: `https://example.feishu.cn/base/ABC123?table=tblXYZ789`
+     - `FEISHU_APP_TOKEN=ABC123`
+     - `FEISHU_TABLE_ID=tblXYZ789`
+
 ## 开发进度
 
 - [x] 阶段 1: 项目初始化 + 小红书抓取功能
 - [x] 阶段 2: AI 洗稿功能
-- [ ] 阶段 3: 飞书表格写入功能
+- [x] 阶段 3: 飞书表格写入功能
 - [ ] 阶段 4: 定时调度 + 完整测试
 
 ## 项目结构
@@ -114,6 +149,10 @@ auto-redbook-content/
 │   ├── rewriter/        # AI 洗稿模块
 │   │   ├── index.ts     # ContentRewriter 类
 │   │   └── prompts.ts   # 洗稿提示词
+│   ├── feishu/          # 飞书集成模块
+│   │   ├── client.ts    # 飞书 API 客户端
+│   │   ├── record-builder.ts  # 记录构建器
+│   │   └── index.ts     # 模块导出
 │   ├── types/           # TypeScript 类型定义
 │   └── index.ts         # 入口文件
 ├── .env.example         # 环境变量示例
