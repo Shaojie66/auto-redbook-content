@@ -1,16 +1,46 @@
 import { XhsNote } from '../types';
-import { execSync } from 'child_process';
+import axios from 'axios';
 
 export interface FeishuConfig {
   appToken: string;
   tableId: string;
+  appId?: string;
+  appSecret?: string;
 }
 
 export class FeishuWriter {
   private config: FeishuConfig;
+  private accessToken?: string;
+  private tokenExpiry?: number;
 
   constructor(config: FeishuConfig) {
     this.config = config;
+  }
+
+  private async getAccessToken(): Promise<string> {
+    // 如果 token 还有效，直接返回
+    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    // 检查必需的配置
+    if (!this.config.appId || !this.config.appSecret) {
+      throw new Error('Missing appId or appSecret in Feishu config');
+    }
+
+    // 获取新 token
+    const response = await axios.post(
+      'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',
+      {
+        app_id: this.config.appId,
+        app_secret: this.config.appSecret,
+      }
+    );
+
+    this.accessToken = response.data.tenant_access_token as string;
+    this.tokenExpiry = Date.now() + (response.data.expire - 60) * 1000; // 提前 60 秒过期
+
+    return this.accessToken;
   }
 
   buildRecord(
@@ -41,8 +71,24 @@ export class FeishuWriter {
   }
 
   async writeRecord(fields: Record<string, any>): Promise<void> {
-    const cmd = `openclaw feishu bitable create-record --app-token "${this.config.appToken}" --table-id "${this.config.tableId}" --fields '${JSON.stringify(fields)}'`;
-    execSync(cmd, { encoding: 'utf-8' });
+    const token = await this.getAccessToken();
+
+    const response = await axios.post(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${this.config.appToken}/tables/${this.config.tableId}/records`,
+      {
+        fields,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.data.code !== 0) {
+      throw new Error(`Feishu API error: ${response.data.msg}`);
+    }
   }
 
   getTableUrl(): string {

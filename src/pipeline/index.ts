@@ -20,6 +20,8 @@ export async function runPipeline() {
   const feishuWriter = new FeishuWriter({
     appToken: config.feishu.appToken,
     tableId: config.feishu.tableId,
+    appId: config.feishu.appId,
+    appSecret: config.feishu.appSecret,
   });
 
   logger.info(`关键词: ${config.xhs.keywords.join(', ')}`);
