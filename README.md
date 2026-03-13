@@ -86,15 +86,53 @@ AI_BASE_URL=https://your-proxy.com/v1
 
 ## 使用
 
+### 手动执行一次
+
 ```bash
-# 开发模式运行
+# 构建并执行一次完整流程
+npm run once
+```
+
+### 启动定时任务
+
+```bash
+# 启动定时调度（需要先在 .env 中配置）
+npm run start
+```
+
+**定时任务配置：**
+
+在 `.env` 中设置：
+
+```env
+# 启用定时任务
+SCHEDULE_ENABLED=true
+
+# Cron 表达式（默认每 6 小时执行一次）
+SCHEDULE_CRON=0 */6 * * *
+```
+
+**常用 Cron 表达式：**
+
+- `0 9,12,18 * * *` - 每天 9:00、12:00、18:00 执行
+- `0 */6 * * *` - 每 6 小时执行一次
+- `0 0 * * *` - 每天凌晨 0:00 执行
+- `*/30 * * * *` - 每 30 分钟执行一次
+
+**查看日志：**
+
+定时任务会输出详细日志，包括：
+- 执行时间
+- 抓取结果
+- 洗稿进度
+- 写入状态
+- 成功/失败统计
+
+### 开发模式
+
+```bash
+# 开发模式运行（使用旧的测试脚本）
 npm run dev
-
-# 构建
-npm run build
-
-# 生产模式运行
-npm start
 ```
 
 ### 飞书配置说明
@@ -137,7 +175,17 @@ npm start
 - [x] 阶段 1: 项目初始化 + 小红书抓取功能
 - [x] 阶段 2: AI 洗稿功能
 - [x] 阶段 3: 飞书表格写入功能
-- [ ] 阶段 4: 定时调度 + 完整测试
+- [x] 阶段 4: 定时调度 + 完整自动化
+
+## 功能特性
+
+- ✅ 小红书热点内容抓取
+- ✅ AI 智能洗稿（支持 OpenAI 和 Anthropic）
+- ✅ 飞书多维表格自动写入
+- ✅ 定时调度执行
+- ✅ 失败重试机制（最多 3 次）
+- ✅ 详细日志记录
+- ✅ 灵活配置（关键词、数量、调度时间）
 
 ## 项目结构
 
@@ -151,10 +199,19 @@ auto-redbook-content/
 │   │   └── prompts.ts   # 洗稿提示词
 │   ├── feishu/          # 飞书集成模块
 │   │   ├── client.ts    # 飞书 API 客户端
+│   │   ├── writer.ts    # 飞书写入器
 │   │   ├── record-builder.ts  # 记录构建器
 │   │   └── index.ts     # 模块导出
+│   ├── scheduler/       # 定时调度模块
+│   │   └── index.ts     # Scheduler 类
+│   ├── pipeline/        # 执行流程模块
+│   │   └── index.ts     # runPipeline 函数
+│   ├── utils/           # 工具函数
+│   │   └── logger.ts    # 日志工具
 │   ├── types/           # TypeScript 类型定义
-│   └── index.ts         # 入口文件
+│   ├── start.ts         # 定时任务入口
+│   ├── once.ts          # 单次执行入口
+│   └── index.ts         # 旧版测试入口
 ├── .env.example         # 环境变量示例
 ├── package.json
 ├── tsconfig.json

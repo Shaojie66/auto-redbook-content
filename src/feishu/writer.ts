@@ -1,4 +1,5 @@
 import { XhsNote } from '../types';
+import { execSync } from 'child_process';
 
 export interface FeishuConfig {
   appToken: string;
@@ -37,6 +38,11 @@ export class FeishuWriter {
     }
 
     return fields;
+  }
+
+  async writeRecord(fields: Record<string, any>): Promise<void> {
+    const cmd = `openclaw feishu bitable create-record --app-token "${this.config.appToken}" --table-id "${this.config.tableId}" --fields '${JSON.stringify(fields)}'`;
+    execSync(cmd, { encoding: 'utf-8' });
   }
 
   getTableUrl(): string {
